@@ -1,25 +1,43 @@
 package edu.esiea.inventorymanager.model;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "Article")
 public class Article {
+	@Id
+	@Column(name = "Id")
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private int id;
+	@Column(name = "Name", nullable = false, length = 30)
 	private String name;
+	@Column(name = "EAN13", nullable = false, length = 30)
 	private String EAN13;
+	@Column(name = "brand", nullable = false, length = 30)
 	private String brand;
+	@Column(name = "picture_URL", nullable = false, length = 30)
 	private String picture_URL;
+	@Column(name = "price", nullable = false, length = 100)
 	private float price;
+	@Column(name = "description", nullable = false, length = 30)
 	private String description;
+	@Column(name = "Stock", nullable = false)
 	private String Stock;
 
 	public Article(String name, String eAN13, String brand, String picture_URL, float price, String description,
 			String stock) {
-		super();
 		this.name = name;
-		EAN13 = eAN13;
+		this.EAN13 = eAN13;
 		this.brand = brand;
 		this.picture_URL = picture_URL;
 		this.price = price;
 		this.description = description;
-		Stock = stock;
+		this.Stock = stock;
 	}
 
 	public Article() {
