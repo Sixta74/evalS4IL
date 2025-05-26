@@ -1,10 +1,16 @@
 package edu.esiea.inventorymanager.model;
 
+import java.util.List;
+
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 @Entity
@@ -18,26 +24,27 @@ public class Article {
 	private String name;
 	@Column(name = "EAN13", nullable = false, length = 30)
 	private String EAN13;
-	@Column(name = "brand", nullable = false, length = 30)
+	@Column(name = "Brand", nullable = false, length = 30)
 	private String brand;
-	@Column(name = "picture_URL", nullable = false, length = 30)
+	@Column(name = "Picture_URL", nullable = false, length = 30)
 	private String picture_URL;
-	@Column(name = "price", nullable = false, length = 100)
+	@Column(name = "Price", nullable = false, length = 100)
 	private float price;
-	@Column(name = "description", nullable = false, length = 30)
+	@Column(name = "Description", nullable = false, length = 30)
 	private String description;
-	@Column(name = "Stock", nullable = false)
-	private String Stock;
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+	@JoinColumn(name = "ArticleId", referencedColumnName = "Id")
+	private List<Stock> stocks;
 
 	public Article(String name, String eAN13, String brand, String picture_URL, float price, String description,
-			String stock) {
+			List<Stock> stocks) {
 		this.name = name;
 		this.EAN13 = eAN13;
 		this.brand = brand;
 		this.picture_URL = picture_URL;
 		this.price = price;
 		this.description = description;
-		this.Stock = stock;
+		this.stocks = stocks;
 	}
 
 	public Article() {
@@ -45,10 +52,6 @@ public class Article {
 
 	public int getId() {
 		return id;
-	}
-
-	public void setId(int id) {
-		this.id = id;
 	}
 
 	public String getName() {
@@ -99,12 +102,12 @@ public class Article {
 		this.description = description;
 	}
 
-	public String getStock() {
-		return Stock;
+	public List<Stock> getStock() {
+		return stocks;
 	}
 
-	public void setStock(String stock) {
-		Stock = stock;
+	public void setStock(List<Stock> stock) {
+		stocks = stock;
 	}
 
 }
