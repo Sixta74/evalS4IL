@@ -12,10 +12,17 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 
 @Entity
 @Table(name = "Stock")
+@NamedQueries({ @NamedQuery(name = "Stock.findById", query = "SELECT sto FROM Stock sto WHERE sto.id = :id"),
+		@NamedQuery(name = "Stock.findAll", query = "SELECT sto FROM Stock sto"),
+		@NamedQuery(name = "Stock.findByArticleId", query = "SELECT sto FROM Stock sto JOIN sto.article art WHERE art.id = :id"),
+		@NamedQuery(name = "Stock.findAllbyTransferType", query = "SELECT sto FROM Stock sto WHERE sto.transferType = :transferType"),
+		@NamedQuery(name = "Stock.findAllByCommandId", query = "SELECT sto FROM Stock sto JOIN sto.command com WHERE com.id = :id") })
 public class Stock {
 	@Id
 	@Column(name = "Id")
@@ -28,6 +35,11 @@ public class Stock {
 	private Article article;
 	@Column(name = "Quantity", nullable = false, length = 30)
 	private int quantity;
+	// Added command type for more convenience in service and queries. This way
+	// findAllByCommandId is a query from Stock class
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "Command", referencedColumnName = "Id")
+	private Command command;
 	@Enumerated(EnumType.STRING)
 	@Column(name = "TransferType", nullable = false, length = 3)
 	private InOut transferType;

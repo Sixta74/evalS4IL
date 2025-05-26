@@ -37,6 +37,17 @@ public interface IArticlesDao {
 	Article getArticleById(int id) throws DaoException;
 
 	/**
+	 * Reads all Articles in the persistence layer that belong to the given
+	 * {@link Category}.
+	 *
+	 * @param id Id of the {@link Category} whose Articles are to be retrieved.
+	 * @return All stored Articles in a {@link List}. This List can be empty but it
+	 *         <u><b>can't</b></u> be <code>null</code>.
+	 * @throws DaoException in case of error.
+	 */
+	List<Article> getAllArticlesByCategoryId(int id) throws DaoException;
+
+	/**
 	 * Return stored Article that contains the {@link Stock} which id correspond to
 	 * the one given.
 	 *

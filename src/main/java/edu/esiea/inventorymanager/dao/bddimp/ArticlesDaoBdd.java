@@ -56,6 +56,14 @@ public class ArticlesDaoBdd implements IArticlesDao {
 	}
 
 	@Override
+	public List<Article> getAllArticlesByCategoryId(final int categoryId) throws DaoException {
+		final TypedQuery<Article> query = this.bdd.getEntityManager().createNamedQuery("Article.findByCategoryId",
+				Article.class);
+		query.setParameter("id", categoryId);
+		return query.getResultList();
+	}
+
+	@Override
 	public void updateArticle(final Article a) throws DaoException {
 		try {
 			this.bdd.beginTransaction();

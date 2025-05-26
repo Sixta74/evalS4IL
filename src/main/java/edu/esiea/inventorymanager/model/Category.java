@@ -5,10 +5,14 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 
 @Entity
 @Table(name = "Category")
+@NamedQueries({ @NamedQuery(name = "Category.findById", query = "SELECT cat FROM Category cat WHERE cat.id = :id"),
+		@NamedQuery(name = "Category.findAll", query = "SELECT cat FROM Category cat") })
 public class Category {
 	@Id
 	@Column(name = "Id")

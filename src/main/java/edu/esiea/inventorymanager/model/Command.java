@@ -11,11 +11,16 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 @Entity
 @Table(name = "Command")
+@NamedQueries({ @NamedQuery(name = "Command.findById", query = "SELECT com FROM Command com WHERE com.id = :id"),
+		@NamedQuery(name = "Command.findAll", query = "SELECT com FROM Command com"),
+		@NamedQuery(name = "Command.findByStockId", query = "SELECT com FROM Command com JOIN com.stocks s WHERE s.id = :id") })
 public class Command {
 	@Id
 	@Column(name = "Id")
@@ -23,6 +28,8 @@ public class Command {
 	private int id;
 	@Column(name = "Date", nullable = false, length = 30)
 	private LocalDate date;
+	// Could remove this Stock join since command is already in stock class but
+	// ESIEA specifically asked for stock to be in command
 	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
 	@JoinColumn(name = "CommandId", referencedColumnName = "Id")
 	private List<Stock> stocks;

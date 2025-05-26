@@ -10,11 +10,18 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 @Entity
 @Table(name = "Article")
+@NamedQueries({ @NamedQuery(name = "Article.findById", query = "SELECT art FROM Article art WHERE art.id = :id"),
+		@NamedQuery(name = "Article.findAll", query = "SELECT art FROM Article art"),
+		@NamedQuery(name = "Article.findByStockId", query = "SELECT art FROM Article art JOIN art.stocks s WHERE s.id = :id"),
+		@NamedQuery(name = "Article.findAllByCategoryId", query = "SELECT art FROM Article art JOIN art.category cat WHERE cat.id = :id") })
 public class Article {
 	@Id
 	@Column(name = "Id")
@@ -32,19 +39,20 @@ public class Article {
 	private float price;
 	@Column(name = "Description", nullable = false, length = 30)
 	private String description;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "Category", referencedColumnName = "Id")
+	private Category category;
 	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
 	@JoinColumn(name = "ArticleId", referencedColumnName = "Id")
 	private List<Stock> stocks;
 
-	public Article(String name, String eAN13, String brand, String picture_URL, float price, String description,
-			List<Stock> stocks) {
+	public Article(String name, String eAN13, String brand, String picture_URL, float price, String description) {
 		this.name = name;
 		this.EAN13 = eAN13;
 		this.brand = brand;
 		this.picture_URL = picture_URL;
 		this.price = price;
 		this.description = description;
-		this.stocks = stocks;
 	}
 
 	public Article() {
@@ -100,6 +108,14 @@ public class Article {
 
 	public void setDescription(String description) {
 		this.description = description;
+	}
+
+	public Category getCategory() {
+		return category;
+	}
+
+	public void setCategory(Category category) {
+		this.category = category;
 	}
 
 	public List<Stock> getStock() {
