@@ -59,8 +59,8 @@ public class CategoryServices {
 	@Path("/delete/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response deleteCategory(@PathParam("id") final int idCategory) {
-		final ICategoriesDao dao = DaoFactory.getInstance().getCategoriesDao();
 		try {
+			final ICategoriesDao dao = DaoFactory.getInstance().getCategoriesDao();
 			final Category category = dao.getCategoryById(idCategory);
 			if (category == null) {
 				return Response.status(Response.Status.NOT_FOUND)

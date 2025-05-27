@@ -68,8 +68,8 @@ public class CommandServices {
 	@Path("/delete/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response deleteCommand(@PathParam("id") final int idCommand) {
-		final ICommandsDao dao = DaoFactory.getInstance().getCommandsDao();
 		try {
+			final ICommandsDao dao = DaoFactory.getInstance().getCommandsDao();
 			final Command command = dao.getCommandById(idCommand);
 			if (command == null) {
 				return Response.status(Response.Status.NOT_FOUND)

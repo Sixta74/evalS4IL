@@ -11,7 +11,11 @@ import edu.esiea.inventorymanager.model.Command;
 
 public class CommandsDaoBdd implements ICommandsDao {
 
-	private final DaoBddHelper bdd = DaoBddHelper.getInstance();
+	private final DaoBddHelper bdd;
+
+	public CommandsDaoBdd() throws DaoException {
+		this.bdd = DaoBddHelper.getInstance();
+	}
 
 	@Override
 	public Command createCommand(final Command com) throws DaoException {

@@ -21,4 +21,28 @@
 			<property name="eclipselink.logging.level" value="FINE" />
 		</properties>
 	</persistence-unit>
+		<persistence-unit name="evalbdds4Test">
+		<provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
+		<class>edu.esiea.inventorymanager.model.Article</class>
+		<class>edu.esiea.inventorymanager.model.Category</class>
+		<class>edu.esiea.inventorymanager.model.Stock</class>
+		<class>edu.esiea.inventorymanager.model.Command</class>
+		<exclude-unlisted-classes>true</exclude-unlisted-classes>
+		<properties>
+			<property name="javax.persistence.jdbc.driver"
+				value="org.hsqldb.jdbcDriver" />
+			<property name="javax.persistence.jdbc.url"
+				value="jdbc:hsqldb:mem:test:sample" />
+			<property name="eclipselink.ddl-generation"
+				value="create-tables" />
+			<property name="eclipselink.ddl-generation-mode"
+				value="ddl_database_generation" />
+			<property name="eclipselink.ddl-generation.output-mode"
+				value="database" />
+			<property
+				name="javax.persistence.schema-generation.database.action"
+				value="drop-and-create" />
+			<property name="eclipselink.logging.level" value="WARNING" />
+		</properties>
+	</persistence-unit>
 </persistence>

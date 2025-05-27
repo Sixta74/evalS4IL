@@ -85,6 +85,14 @@ public class Stock {
 		this.quantity = quantity;
 	}
 
+	public Command getCommand() {
+		return command;
+	}
+
+	public void setCommand(Command command) {
+		this.command = command;
+	}
+
 	public InOut getTransferType() {
 		return transferType;
 	}

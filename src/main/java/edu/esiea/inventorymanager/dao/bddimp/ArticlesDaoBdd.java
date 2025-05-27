@@ -11,7 +11,11 @@ import edu.esiea.inventorymanager.model.Article;
 
 public class ArticlesDaoBdd implements IArticlesDao {
 
-	private final DaoBddHelper bdd = DaoBddHelper.getInstance();
+	private final DaoBddHelper bdd;
+
+	public ArticlesDaoBdd() throws DaoException {
+		this.bdd = DaoBddHelper.getInstance();
+	}
 
 	@Override
 	public Article createArticle(final Article a) throws DaoException {

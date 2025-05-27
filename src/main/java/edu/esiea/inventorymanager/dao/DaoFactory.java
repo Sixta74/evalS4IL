@@ -8,6 +8,7 @@ import edu.esiea.inventorymanager.dao.interfaces.IArticlesDao;
 import edu.esiea.inventorymanager.dao.interfaces.ICategoriesDao;
 import edu.esiea.inventorymanager.dao.interfaces.ICommandsDao;
 import edu.esiea.inventorymanager.dao.interfaces.IStocksDao;
+import edu.esiea.inventorymanager.exception.DaoException;
 
 public class DaoFactory {
 	private static DaoFactory instance;
@@ -26,35 +27,35 @@ public class DaoFactory {
 	private DaoFactory() {
 	}
 
-	public IArticlesDao getArticlesDao() {
-		if (articlesDao == null) {
-			articlesDao = new ArticlesDaoBdd();
+	public IArticlesDao getArticlesDao() throws DaoException {
+		if (this.articlesDao == null) {
+			this.articlesDao = new ArticlesDaoBdd();
 		}
-		return articlesDao;
+		return this.articlesDao;
 
 	}
 
-	public ICategoriesDao getCategoriesDao() {
-		if (categoriesDao == null) {
-			categoriesDao = new CategoriesDaoBdd();
+	public ICategoriesDao getCategoriesDao() throws DaoException {
+		if (this.categoriesDao == null) {
+			this.categoriesDao = new CategoriesDaoBdd();
 		}
-		return categoriesDao;
+		return this.categoriesDao;
 
 	}
 
-	public ICommandsDao getCommandsDao() {
-		if (commandsDao == null) {
-			commandsDao = new CommandsDaoBdd();
+	public ICommandsDao getCommandsDao() throws DaoException {
+		if (this.commandsDao == null) {
+			this.commandsDao = new CommandsDaoBdd();
 		}
-		return commandsDao;
+		return this.commandsDao;
 
 	}
 
-	public IStocksDao getStocksDao() {
-		if (stocksDao == null) {
-			stocksDao = new StocksDaoBdd();
+	public IStocksDao getStocksDao() throws DaoException {
+		if (this.stocksDao == null) {
+			this.stocksDao = new StocksDaoBdd();
 		}
-		return stocksDao;
+		return this.stocksDao;
 
 	}
 }

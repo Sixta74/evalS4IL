@@ -5,30 +5,45 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
 
-public class DaoBddHelper {
+import edu.esiea.inventorymanager.exception.DaoException;
 
+public class DaoBddHelper {
 	private static DaoBddHelper instance;
 	private final EntityManager entityManager;
 
-	public static DaoBddHelper getInstance() {
+	public static DaoBddHelper getInstance() throws DaoException {
 		if (instance == null) {
-			instance = new DaoBddHelper();
+			instance = new DaoBddHelper("evalbdds4");
 		}
 		return instance;
 	}
 
-	public EntityManager getEntityManager() {
-		return entityManager;
+	/**
+	 * This method allow to set the persistance target as the test one
+	 * 
+	 * @return the instance of this class initialized with test persistance unit
+	 * @throws DaoException in case of error
+	 */
+
+	public static DaoBddHelper forceTestInstance() throws DaoException {
+		instance = new DaoBddHelper("evalbdds4Test");
+		return instance;
 	}
 
-	public DaoBddHelper() {
+	public EntityManager getEntityManager() {
+		return this.entityManager;
+	}
+
+	private DaoBddHelper(final String persistanceUnitName) throws DaoException {
 		try {
-			Class.forName("org.eclipse.persistence.jpa.PersistenceProvider");
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+			final EntityManagerFactory emf = Persistence.createEntityManagerFactory(persistanceUnitName);
+			this.entityManager = emf.createEntityManager();
+			final org.eclipse.persistence.sessions.Session session = this.entityManager
+					.unwrap(org.eclipse.persistence.sessions.Session.class);
+			System.out.println("Entity manager créé : " + session.getDatasourcePlatform().toString());
+		} catch (final Exception e) {
+			throw new DaoException("Impossible de créer l'Entity Manager", e);
 		}
-		final EntityManagerFactory emf = Persistence.createEntityManagerFactory("evalbdds4");
-		entityManager = emf.createEntityManager();
 	}
 
 	public void beginTransaction() {
@@ -48,5 +63,4 @@ public class DaoBddHelper {
 			trans.rollback();
 		}
 	}
-
 }

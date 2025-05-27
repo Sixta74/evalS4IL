@@ -79,8 +79,8 @@ public class ArticleServices {
 	@Path("/delete/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response deleteArticle(@PathParam("id") final int idArticle) {
-		final IArticlesDao dao = DaoFactory.getInstance().getArticlesDao();
 		try {
+			final IArticlesDao dao = DaoFactory.getInstance().getArticlesDao();
 			final Article article = dao.getArticleById(idArticle);
 			if (article == null) {
 				return Response.status(Response.Status.NOT_FOUND)

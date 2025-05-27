@@ -39,7 +39,7 @@ public class Article {
 	private float price;
 	@Column(name = "Description", nullable = false, length = 30)
 	private String description;
-	@ManyToOne(fetch = FetchType.LAZY)
+	@ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	@JoinColumn(name = "Category", referencedColumnName = "Id")
 	private Category category;
 	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)

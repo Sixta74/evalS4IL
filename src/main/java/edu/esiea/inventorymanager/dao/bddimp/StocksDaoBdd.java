@@ -12,7 +12,11 @@ import edu.esiea.inventorymanager.model.Stock;
 
 public class StocksDaoBdd implements IStocksDao {
 
-	private final DaoBddHelper bdd = DaoBddHelper.getInstance();
+	private final DaoBddHelper bdd;
+
+	public StocksDaoBdd() throws DaoException {
+		this.bdd = DaoBddHelper.getInstance();
+	}
 
 	@Override
 	public Stock createStock(final Stock sto) throws DaoException {

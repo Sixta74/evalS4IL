@@ -11,7 +11,11 @@ import edu.esiea.inventorymanager.model.Category;
 
 public class CategoriesDaoBdd implements ICategoriesDao {
 
-	private final DaoBddHelper bdd = DaoBddHelper.getInstance();
+	private final DaoBddHelper bdd;
+
+	public CategoriesDaoBdd() throws DaoException {
+		this.bdd = DaoBddHelper.getInstance();
+	}
 
 	@Override
 	public Category createCategory(final Category cat) throws DaoException {
@@ -38,7 +42,10 @@ public class CategoriesDaoBdd implements ICategoriesDao {
 		final TypedQuery<Category> query = this.bdd.getEntityManager().createNamedQuery("Category.findById",
 				Category.class);
 		query.setParameter("id", id);
-		return query.getResultList().isEmpty() ? null : query.getResultList().getFirst();
+		if (query.getResultList().size() > 0) {
+			return query.getResultList().getFirst();
+		}
+		return null;
 	}
 
 	@Override

@@ -92,8 +92,8 @@ public class StockServices {
 	@Path("/delete/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response deleteStock(@PathParam("id") final int idStock) {
-		final IStocksDao dao = DaoFactory.getInstance().getStocksDao();
 		try {
+			final IStocksDao dao = DaoFactory.getInstance().getStocksDao();
 			final Stock stock = dao.getStockById(idStock);
 			if (stock == null) {
 				return Response.status(Response.Status.NOT_FOUND)
