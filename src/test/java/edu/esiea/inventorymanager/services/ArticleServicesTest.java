@@ -28,15 +28,15 @@ import jakarta.ws.rs.core.Response;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ArticleServicesTest extends JerseyTest {
 
-	private static int httpStatus;
-	private static Article article;
-
 	private static final String PARAM_NAME_1 = "ArticleTest1";
 	private static final String PARAM_EAN13_1 = "1234567890123";
 	private static final String PARAM_BRAND_1 = "BrandTest1";
 	private static final String PARAM_PICTURE_1 = "image1.jpg";
 	private static final String PARAM_PRICE_1 = "15.99";
 	private static final String PARAM_DESCRIPTION_1 = "Description article 1";
+
+	private static int httpStatus;
+	private static Article article;
 
 	@Override
 	protected Application configure() {
@@ -54,6 +54,46 @@ class ArticleServicesTest extends JerseyTest {
 		if (m.isOpen()) {
 			m.clear();
 		}
+
+	}
+
+	private void callAddService(final String name, final String ean, final String brand, final String picture,
+			final String price, final String description) {
+		final Form formulaire = new Form();
+		if (name != null) {
+			formulaire.param(ArticleServices.PARAM_ART_NAME, name);
+		}
+		if (ean != null) {
+			formulaire.param(ArticleServices.PARAM_ART_EAN13, ean);
+		}
+		if (brand != null) {
+			formulaire.param(ArticleServices.PARAM_ART_BRAND, brand);
+		}
+		if (picture != null) {
+			formulaire.param(ArticleServices.PARAM_ART_PICTURE, picture);
+		}
+		if (price != null) {
+			formulaire.param(ArticleServices.PARAM_ART_PRICE, price);
+		}
+		if (description != null) {
+			formulaire.param(ArticleServices.PARAM_ART_DESCRIPTION, description);
+		}
+
+		final Response response = target("/article/add").request().accept(MediaType.APPLICATION_JSON)
+				.post(Entity.form(formulaire));
+		// System.out.println("📢 Contenu brut de la réponse JSON : " +
+		// response.readEntity(String.class));
+		httpStatus = response.getStatus();
+		if (httpStatus == Response.Status.CREATED.getStatusCode()) {
+			try {
+				article = response.readEntity(Article.class);
+				System.out.println(article.getId());
+				System.out.println(article.getEAN13());
+				System.out.println(article.getPrice());
+			} catch (final Exception e) {
+				fail("Impossible de mapper la réponse vers un Article", e);
+			}
+		}
 	}
 
 	@Test
@@ -63,12 +103,16 @@ class ArticleServicesTest extends JerseyTest {
 		assertEquals(Response.Status.CREATED.getStatusCode(), httpStatus,
 				"Le status de la réponse devrait être created.");
 		assertNotNull(article, "Echec du mappage réponse article.");
+		System.out.println(article.getId());
 		assertTrue(article.getId() > 0, "L'article créé n'a pas l'id adéquat.");
 		assertEquals(PARAM_NAME_1, article.getName(), "Le nom du premier article n'est pas bon.");
 		assertEquals(PARAM_EAN13_1, article.getEAN13(), "Le code EAN du premier article n'est pas bon.");
 		assertEquals(PARAM_BRAND_1, article.getBrand(), "Le code EAN du premier article n'est pas bon.");
 		assertEquals(PARAM_PICTURE_1, article.getPicture_URL(), "L'image du premier article n'est pas bonne.");
-		assertEquals(PARAM_PRICE_1, article.getPrice(), "Le prix du premier article n'est pas bon.");
+		float expectedPrice = Float.parseFloat(PARAM_PRICE_1);
+		assertEquals(expectedPrice, article.getPrice(), 0.0001, "Le prix du premier article n'est pas bon.");
+		// assertEquals(PARAM_PRICE_1, article.getPrice(), "Le prix du premier article
+		// n'est pas bon.");
 		assertEquals(PARAM_DESCRIPTION_1, article.getDescription(), "La description du premier article n'est pas bon.");
 
 		callAddService("", PARAM_EAN13_1, PARAM_BRAND_1, PARAM_PICTURE_1, PARAM_PRICE_1, PARAM_DESCRIPTION_1);
@@ -77,14 +121,15 @@ class ArticleServicesTest extends JerseyTest {
 		callAddService(null, PARAM_EAN13_1, PARAM_BRAND_1, PARAM_PICTURE_1, PARAM_PRICE_1, PARAM_DESCRIPTION_1);
 		assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), httpStatus);
 
-		callAddService(PARAM_NAME_1, "NotNumeric", PARAM_BRAND_1, PARAM_PICTURE_1, PARAM_PRICE_1, PARAM_DESCRIPTION_1);
+		callAddService(PARAM_NAME_1, PARAM_EAN13_1, PARAM_BRAND_1, PARAM_PICTURE_1, "Not numeric", PARAM_DESCRIPTION_1);
 		assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), httpStatus);
 	}
 
 	@Test
 	@Order(2)
 	void testGetArticleById() {
-		Response response = target("/article/" + article.getId()).request().get();
+		Response response = target("/article/".concat(Integer.toString(article.getId()))).request()
+				.accept(MediaType.APPLICATION_JSON).get();
 		assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
 		Article fetchedArticle = response.readEntity(Article.class);
 		assertEquals(article.getName(), fetchedArticle.getName());
@@ -122,40 +167,6 @@ class ArticleServicesTest extends JerseyTest {
 		assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus());
 	}
 
-	private void callAddService(final String name, final String ean, final String brand, final String picture,
-			final String price, final String description) {
-		final Form formulaire = new Form();
-		if (name != null) {
-			formulaire.param(ArticleServices.PARAM_ART_NAME, name);
-		}
-		if (ean != null) {
-			formulaire.param(ArticleServices.PARAM_ART_EAN13, ean);
-		}
-		if (brand != null) {
-			formulaire.param(ArticleServices.PARAM_ART_BRAND, brand);
-		}
-		if (picture != null) {
-			formulaire.param(ArticleServices.PARAM_ART_PICTURE, picture);
-		}
-		if (price != null) {
-			formulaire.param(ArticleServices.PARAM_ART_PRICE, price);
-		}
-		if (description != null) {
-			formulaire.param(ArticleServices.PARAM_ART_DESCRIPTION, description);
-		}
-
-		final Response response = target("/article/add").request().accept(MediaType.APPLICATION_JSON)
-				.post(Entity.form(formulaire));
-		httpStatus = response.getStatus();
-		if (httpStatus == Response.Status.CREATED.getStatusCode()) {
-			try {
-				article = response.readEntity(Article.class);
-			} catch (final Exception e) {
-				fail("Impossible de mapper la réponse vers un Article", e);
-			}
-		}
-	}
-
 	private void callUpdateService(final String id, final String name, final String ean, final String brand,
 			final String picture, final String price, final String description) {
 		final Form formulaire = new Form();
@@ -182,9 +193,9 @@ class ArticleServicesTest extends JerseyTest {
 		}
 
 		final Response response = target("/article/update").request().accept(MediaType.APPLICATION_JSON)
-				.post(Entity.form(formulaire));
+				.put(Entity.form(formulaire));
 		httpStatus = response.getStatus();
-		if (httpStatus == Response.Status.CREATED.getStatusCode()) {
+		if (httpStatus == Response.Status.OK.getStatusCode()) {
 			try {
 				article = response.readEntity(Article.class);
 			} catch (final Exception e) {

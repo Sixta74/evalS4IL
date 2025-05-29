@@ -59,13 +59,6 @@ class ArticlesDaoBddTest {
 			m.clear();
 		}
 	}
-//   CASSE	
-//	article1.setName(PARAM_NAME_1);
-//	article1.setEAN13(PARAM_EAN13_1);
-//	article1.setBrand(PARAM_BRAND_1);
-//	article1.setPicture_URL(PARAM_PICTURE_1);
-//	article1.setPrice(PARAM_PRICE_1);
-//	article1.setDescription(PARAM_DESCRIPTION_1);
 
 	@Test
 	@Order(1)

@@ -62,6 +62,12 @@ public class Article {
 		return id;
 	}
 
+	// Obligation de laisser setId pour que les classes de test service focntionne
+	// du à l'utilisation d'une persistence RAM
+	public void setId(int id) {
+		this.id = id;
+	}
+
 	public String getName() {
 		return name;
 	}
@@ -122,8 +128,8 @@ public class Article {
 		return stocks;
 	}
 
-	public void setStock(List<Stock> stock) {
-		stocks = stock;
+	public void setStock(List<Stock> stocks) {
+		this.stocks = stocks;
 	}
 
 }

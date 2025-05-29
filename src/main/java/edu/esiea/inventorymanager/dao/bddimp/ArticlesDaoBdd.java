@@ -43,7 +43,7 @@ public class ArticlesDaoBdd implements IArticlesDao {
 				Article.class);
 		query.setParameter("id", id);
 		if (query.getResultList().size() > 0) {
-			return query.getResultList().getFirst();
+			return query.getSingleResult();
 		}
 		return null;
 	}
