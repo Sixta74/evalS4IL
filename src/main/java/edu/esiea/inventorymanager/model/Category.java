@@ -35,6 +35,12 @@ public class Category {
 		return id;
 	}
 
+	// Obligation de laisser setId pour que les classes de test service focntionne
+	// du à l'utilisation d'une persistence RAM
+	public void setId(int id) {
+		this.id = id;
+	}
+
 	public String getName() {
 		return name;
 	}

@@ -51,37 +51,33 @@ public class ArticleServices {
 					.entity("Un ou plusieurs paramètres obligatoires sont manquants.").build();
 		}
 
+		String name = formParams.getFirst(PARAM_ART_NAME);
+		String ean13 = formParams.getFirst(PARAM_ART_EAN13);
+		String brand = formParams.getFirst(PARAM_ART_BRAND);
+		String picture = formParams.getFirst(PARAM_ART_PICTURE);
+		float price = Float.parseFloat(formParams.getFirst(PARAM_ART_PRICE));
+		String description = formParams.getFirst(PARAM_ART_DESCRIPTION);
+		String categoryIdStr = formParams.getFirst(PARAM_ART_CATEGORY_ID);
+		Category category = null;
+
+		if (categoryIdStr != null && !categoryIdStr.isBlank()) {
+			int categoryId = Integer.parseInt(categoryIdStr);
+			try {
+				category = DaoFactory.getInstance().getCategoriesDao().getCategoryById(categoryId);
+			} catch (DaoException e) {
+				return Response.status(Response.Status.BAD_REQUEST).entity("Catégorie invalide.").build();
+			}
+		}
+
+		Article article = new Article(name, ean13, brand, picture, price, description);
+		if (category != null) {
+			article.setCategory(category);
+		}
+
 		try {
-			String name = formParams.getFirst(PARAM_ART_NAME);
-			String ean13 = formParams.getFirst(PARAM_ART_EAN13);
-			String brand = formParams.getFirst(PARAM_ART_BRAND);
-			String picture = formParams.getFirst(PARAM_ART_PICTURE);
-			float price = Float.parseFloat(formParams.getFirst(PARAM_ART_PRICE));
-			String description = formParams.getFirst(PARAM_ART_DESCRIPTION);
-
-			ICategoriesDao categoryDao = DaoFactory.getInstance().getCategoriesDao();
-			Category category = null;
-
-			String categoryIdStr = formParams.getFirst(PARAM_ART_CATEGORY_ID);
-			if (categoryIdStr != null && !categoryIdStr.isBlank()) {
-				int categoryId = Integer.parseInt(categoryIdStr);
-				category = categoryDao.getCategoryById(categoryId);
-			}
-
-			Article article = new Article(name, ean13, brand, picture, price, description);
-
-			if (category != null) {
-				article.setCategory(category);
-			}
-
 			article = DaoFactory.getInstance().getArticlesDao().createArticle(article);
-
-			final GenericEntity<Article> json = new GenericEntity<>(article) {
-			};
-			return Response.status(Response.Status.CREATED).entity(json).build();
-
-		} catch (NumberFormatException e) {
-			return Response.status(Response.Status.BAD_REQUEST).entity("ID ou prix invalide.").build();
+			return Response.status(Response.Status.CREATED).entity(new GenericEntity<>(article) {
+			}).build();
 		} catch (DaoException e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}

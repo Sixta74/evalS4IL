@@ -19,6 +19,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import edu.esiea.inventorymanager.dao.bddimp.DaoBddHelper;
 import edu.esiea.inventorymanager.exception.DaoException;
 import edu.esiea.inventorymanager.model.Article;
+import edu.esiea.inventorymanager.model.Category;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Form;
@@ -34,6 +35,7 @@ class ArticleServicesTest extends JerseyTest {
 	private static final String PARAM_PICTURE_1 = "image1.jpg";
 	private static final String PARAM_PRICE_1 = "15.99";
 	private static final String PARAM_DESCRIPTION_1 = "Description article 1";
+	private static Category category = new Category("Category1", "The first category of my categories");
 
 	private static int httpStatus;
 	private static Article article;

@@ -27,58 +27,73 @@ public class CommandServices {
 	public static final String PARAM_COM_DATE = "CommandDate";
 	public static final String PARAM_COM_COMMENT = "CommandComment";
 
+	private boolean isNullOrEmpty(String value) {
+		return value == null || value.trim().isEmpty();
+	}
+
 	@POST
 	@Consumes("application/x-www-form-urlencoded")
 	@Path("/add")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response addCommand(final MultivaluedMap<String, String> formParams) {
-		if (formParams.get(PARAM_COM_DATE) == null || formParams.get(PARAM_COM_COMMENT) == null) {
+		if (isNullOrEmpty(formParams.getFirst(PARAM_COM_DATE))
+				|| isNullOrEmpty(formParams.getFirst(PARAM_COM_COMMENT))) {
 			return Response.status(Response.Status.BAD_REQUEST)
-					.entity("Un des paramètres obligatoires n'est pas fourni.").build();
+					.entity("Un ou plusieurs paramètres obligatoires sont manquants.").build();
 		}
 
-		final String dateStr = formParams.get(PARAM_COM_DATE).getFirst();
-		final String comment = formParams.get(PARAM_COM_COMMENT).getFirst();
-
-		if (dateStr.isBlank() || dateStr == null || comment.isBlank() || comment == null) {
-			return Response.status(Response.Status.BAD_REQUEST)
-					.entity("Un des paramètres obligatoires est vide ou incorrect.").build();
-		}
-
-		LocalDate date;
 		try {
-			date = LocalDate.parse(dateStr);
-		} catch (final Exception e) {
+			LocalDate date = LocalDate.parse(formParams.getFirst(PARAM_COM_DATE));
+			String comment = formParams.getFirst(PARAM_COM_COMMENT);
+
+			Command command = new Command(date, null, comment);
+			command = DaoFactory.getInstance().getCommandsDao().createCommand(command);
+
+			return Response.status(Response.Status.CREATED).entity(new GenericEntity<>(command) {
+			}).build();
+
+		} catch (Exception e) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Erreur dans le format des paramètres fournis.")
 					.build();
 		}
-
-		Command command = new Command(date, null, comment);
-		try {
-			command = DaoFactory.getInstance().getCommandsDao().createCommand(command);
-			final GenericEntity<Command> json = new GenericEntity<>(command) {
-			};
-			return Response.ok().entity(json).build();
-		} catch (final DaoException e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
 	}
 
-	@DELETE
-	@Path("/delete/{id}")
+	@PUT
+	@Consumes("application/x-www-form-urlencoded")
+	@Path("/update")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response deleteCommand(@PathParam("id") final int idCommand) {
+	public Response updateCommand(final MultivaluedMap<String, String> formParams) throws DaoException {
+		if (isNullOrEmpty(formParams.getFirst(PARAM_COM_ID)) || isNullOrEmpty(formParams.getFirst(PARAM_COM_DATE))
+				|| isNullOrEmpty(formParams.getFirst(PARAM_COM_COMMENT))) {
+			return Response.status(Response.Status.BAD_REQUEST)
+					.entity("Un ou plusieurs paramètres obligatoires sont manquants.").build();
+		}
+
 		try {
-			final ICommandsDao dao = DaoFactory.getInstance().getCommandsDao();
-			final Command command = dao.getCommandById(idCommand);
+			int id = Integer.parseInt(formParams.getFirst(PARAM_COM_ID));
+			LocalDate date = LocalDate.parse(formParams.getFirst(PARAM_COM_DATE));
+			String comment = formParams.getFirst(PARAM_COM_COMMENT);
+
+			ICommandsDao dao = DaoFactory.getInstance().getCommandsDao();
+			Command command = dao.getCommandById(id);
 			if (command == null) {
 				return Response.status(Response.Status.NOT_FOUND)
-						.entity("Aucune commande avec l'id [" + idCommand + "] n'a été trouvée.").build();
+						.entity("Aucune commande avec l'id [" + id + "] n'a été trouvée.").build();
 			}
-			dao.deleteCommand(command);
-			return Response.ok().entity("Supprimé").build();
-		} catch (final DaoException e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+
+			command.setDate(date);
+			command.setComment(comment);
+			dao.updateCommand(command);
+
+			return Response.ok().entity(new GenericEntity<>(command) {
+			}).build();
+
+		} catch (NumberFormatException e) {
+			return Response.status(Response.Status.BAD_REQUEST).entity("L'id fourni n'est pas un nombre entier.")
+					.build();
+		} catch (Exception e) {
+			return Response.status(Response.Status.BAD_REQUEST).entity("Erreur dans le format des paramètres fournis.")
+					.build();
 		}
 	}
 
@@ -87,11 +102,10 @@ public class CommandServices {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getAllCommands() {
 		try {
-			final List<Command> ret = DaoFactory.getInstance().getCommandsDao().getAllCommands();
-			final GenericEntity<List<Command>> json = new GenericEntity<>(ret) {
-			};
-			return Response.ok().entity(json).build();
-		} catch (final Exception e) {
+			final List<Command> list = DaoFactory.getInstance().getCommandsDao().getAllCommands();
+			return Response.ok().entity(new GenericEntity<>(list) {
+			}).build();
+		} catch (DaoException e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
@@ -99,67 +113,34 @@ public class CommandServices {
 	@GET
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getCommandResponse(@PathParam("id") final int idCommand) {
+	public Response getCommandById(@PathParam("id") final int id) {
 		try {
-			Command command = DaoFactory.getInstance().getCommandsDao().getCommandById(idCommand);
+			Command command = DaoFactory.getInstance().getCommandsDao().getCommandById(id);
 			if (command == null) {
 				return Response.status(Response.Status.NOT_FOUND)
-						.entity("Aucune commande avec l'id [" + idCommand + "] n'a été trouvée.").build();
+						.entity("Aucune commande avec l'id [" + id + "] n'a été trouvée.").build();
 			}
-			final GenericEntity<Command> json = new GenericEntity<>(command) {
-			};
-			return Response.ok().entity(json).build();
-		} catch (final Exception e) {
+			return Response.ok().entity(new GenericEntity<>(command) {
+			}).build();
+		} catch (DaoException e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
 
-	@PUT
-	@Consumes("application/x-www-form-urlencoded")
-	@Path("/update")
+	@DELETE
+	@Path("/delete/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response updateCommand(final MultivaluedMap<String, String> formParams) {
-		if (formParams.get(PARAM_COM_ID) == null || formParams.get(PARAM_COM_DATE) == null
-				|| formParams.get(PARAM_COM_COMMENT) == null) {
-			return Response.status(Response.Status.BAD_REQUEST)
-					.entity("Un des paramètres obligatoires n'est pas fourni.").build();
-		}
-
-		final String idStr = formParams.get(PARAM_COM_ID).getFirst();
-		final String dateStr = formParams.get(PARAM_COM_DATE).getFirst();
-		final String comment = formParams.get(PARAM_COM_COMMENT).getFirst();
-
-		int id;
-		LocalDate date;
-
+	public Response deleteCommand(@PathParam("id") final int id) {
 		try {
-			id = Integer.parseInt(idStr);
-			date = LocalDate.parse(dateStr);
-		} catch (final Exception e) {
-			return Response.status(Response.Status.BAD_REQUEST).entity("Erreur dans le format des paramètres fournis.")
-					.build();
-		}
-
-		Command command = null;
-		try {
-			command = DaoFactory.getInstance().getCommandsDao().getCommandById(id);
+			ICommandsDao dao = DaoFactory.getInstance().getCommandsDao();
+			Command command = dao.getCommandById(id);
 			if (command == null) {
 				return Response.status(Response.Status.NOT_FOUND)
-						.entity("Aucune commande avec l'identifiant " + idStr + " n'a été trouvée.").build();
+						.entity("Aucune commande avec l'id [" + id + "] n'a été trouvée.").build();
 			}
-		} catch (final DaoException e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
-
-		try {
-			command.setDate(date);
-			command.setComment(comment);
-			DaoFactory.getInstance().getCommandsDao().updateCommand(command);
-
-			final GenericEntity<Command> json = new GenericEntity<>(command) {
-			};
-			return Response.ok().entity(json).build();
-		} catch (final DaoException e) {
+			dao.deleteCommand(command);
+			return Response.ok().entity("Commande supprimée avec succès.").build();
+		} catch (DaoException e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}

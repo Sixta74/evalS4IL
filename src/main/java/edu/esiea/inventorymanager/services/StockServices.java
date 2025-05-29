@@ -31,109 +31,42 @@ public class StockServices {
 	public static final String PARAM_STOCK_TRANSFER_TYPE = "StockTransferType";
 	public static final String PARAM_STOCK_COMMENT = "StockComment";
 
+	private boolean isNullOrEmpty(String value) {
+		return value == null || value.trim().isEmpty();
+	}
+
 	@POST
 	@Consumes("application/x-www-form-urlencoded")
 	@Path("/add")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response addStock(final MultivaluedMap<String, String> formParams) {
-		if (formParams.get(PARAM_STOCK_DATE) == null || formParams.get(PARAM_STOCK_ARTICLE_ID) == null
-				|| formParams.get(PARAM_STOCK_QUANTITY) == null || formParams.get(PARAM_STOCK_TRANSFER_TYPE) == null
-				|| formParams.get(PARAM_STOCK_COMMENT) == null) {
+		if (isNullOrEmpty(formParams.getFirst(PARAM_STOCK_DATE))
+				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_ARTICLE_ID))
+				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_QUANTITY))
+				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_TRANSFER_TYPE))
+				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_COMMENT))) {
 			return Response.status(Response.Status.BAD_REQUEST)
-					.entity("Un des paramètres obligatoires n'est pas fourni.").build();
+					.entity("Un ou plusieurs paramètres obligatoires sont manquants.").build();
 		}
-
-		final String dateStr = formParams.get(PARAM_STOCK_DATE).getFirst();
-		final String articleIdStr = formParams.get(PARAM_STOCK_ARTICLE_ID).getFirst();
-		final String quantityStr = formParams.get(PARAM_STOCK_QUANTITY).getFirst();
-		final String transferTypeStr = formParams.get(PARAM_STOCK_TRANSFER_TYPE).getFirst();
-		final String comment = formParams.get(PARAM_STOCK_COMMENT).getFirst();
-
-		if (dateStr == null || dateStr.isBlank() || articleIdStr == null || articleIdStr.isBlank()
-				|| quantityStr == null || quantityStr.isBlank() || transferTypeStr == null || transferTypeStr.isBlank()
-				|| comment == null || comment.isBlank()) {
-			return Response.status(Response.Status.BAD_REQUEST)
-					.entity("Un des paramètres obligatoires est vide ou incorrect.").build();
-		}
-
-		LocalDate date;
-		int articleId;
-		int quantity;
-		InOut transferType;
 
 		try {
-			date = LocalDate.parse(dateStr);
-			articleId = Integer.parseInt(articleIdStr);
-			quantity = Integer.parseInt(quantityStr);
-			transferType = InOut.valueOf(transferTypeStr);
-		} catch (final Exception e) {
+			LocalDate date = LocalDate.parse(formParams.getFirst(PARAM_STOCK_DATE));
+			int articleId = Integer.parseInt(formParams.getFirst(PARAM_STOCK_ARTICLE_ID));
+			int quantity = Integer.parseInt(formParams.getFirst(PARAM_STOCK_QUANTITY));
+			InOut transferType = InOut.valueOf(formParams.getFirst(PARAM_STOCK_TRANSFER_TYPE));
+			String comment = formParams.getFirst(PARAM_STOCK_COMMENT);
+
+			Stock stock = new Stock(date, DaoFactory.getInstance().getArticlesDao().getArticleById(articleId), quantity,
+					transferType, comment);
+			stock = DaoFactory.getInstance().getStocksDao().createStock(stock);
+
+			return Response.status(Response.Status.CREATED).entity(new GenericEntity<>(stock) {
+			}).build();
+
+		} catch (NumberFormatException e) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Erreur dans le format des paramètres fournis.")
 					.build();
-		}
-
-		Stock stock;
-		try {
-			stock = new Stock(date, DaoFactory.getInstance().getArticlesDao().getArticleById(articleId), quantity,
-					transferType, comment);
-		} catch (final DaoException e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
-		try {
-			stock = DaoFactory.getInstance().getStocksDao().createStock(stock);
-			final GenericEntity<Stock> json = new GenericEntity<>(stock) {
-			};
-			return Response.ok().entity(json).build();
-		} catch (final DaoException e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
-	}
-
-	@DELETE
-	@Path("/delete/{id}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response deleteStock(@PathParam("id") final int idStock) {
-		try {
-			final IStocksDao dao = DaoFactory.getInstance().getStocksDao();
-			final Stock stock = dao.getStockById(idStock);
-			if (stock == null) {
-				return Response.status(Response.Status.NOT_FOUND)
-						.entity("Aucun stock avec l'id [" + idStock + "] n'a été trouvé.").build();
-			}
-			dao.deleteStock(stock);
-			return Response.ok().entity("Supprimé").build();
-		} catch (final DaoException e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
-	}
-
-	@GET
-	@Path("/all")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response getAllStocks() {
-		try {
-			final List<Stock> ret = DaoFactory.getInstance().getStocksDao().getAllStocks();
-			final GenericEntity<List<Stock>> json = new GenericEntity<>(ret) {
-			};
-			return Response.ok().entity(json).build();
-		} catch (final Exception e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
-	}
-
-	@GET
-	@Path("/{id}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response getStockResponse(@PathParam("id") final int idStock) {
-		try {
-			Stock stock = DaoFactory.getInstance().getStocksDao().getStockById(idStock);
-			if (stock == null) {
-				return Response.status(Response.Status.NOT_FOUND)
-						.entity("Aucun stock avec l'id [" + idStock + "] n'a été trouvé.").build();
-			}
-			final GenericEntity<Stock> json = new GenericEntity<>(stock) {
-			};
-			return Response.ok().entity(json).build();
-		} catch (final Exception e) {
+		} catch (DaoException e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
@@ -143,56 +76,92 @@ public class StockServices {
 	@Path("/update")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response updateStock(final MultivaluedMap<String, String> formParams) {
-		if (formParams.get(PARAM_STOCK_ID) == null || formParams.get(PARAM_STOCK_DATE) == null
-				|| formParams.get(PARAM_STOCK_ARTICLE_ID) == null || formParams.get(PARAM_STOCK_QUANTITY) == null
-				|| formParams.get(PARAM_STOCK_TRANSFER_TYPE) == null || formParams.get(PARAM_STOCK_COMMENT) == null) {
+		if (isNullOrEmpty(formParams.getFirst(PARAM_STOCK_ID)) || isNullOrEmpty(formParams.getFirst(PARAM_STOCK_DATE))
+				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_ARTICLE_ID))
+				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_QUANTITY))
+				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_TRANSFER_TYPE))
+				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_COMMENT))) {
 			return Response.status(Response.Status.BAD_REQUEST)
-					.entity("Un des paramètres obligatoires n'est pas fourni.").build();
+					.entity("Un ou plusieurs paramètres obligatoires sont manquants.").build();
 		}
 
-		final String idStr = formParams.get(PARAM_STOCK_ID).getFirst();
-		final String dateStr = formParams.get(PARAM_STOCK_DATE).getFirst();
-		final String articleIdStr = formParams.get(PARAM_STOCK_ARTICLE_ID).getFirst();
-		final String quantityStr = formParams.get(PARAM_STOCK_QUANTITY).getFirst();
-		final String transferTypeStr = formParams.get(PARAM_STOCK_TRANSFER_TYPE).getFirst();
-		final String comment = formParams.get(PARAM_STOCK_COMMENT).getFirst();
-
-		int id, articleId, quantity;
-		LocalDate date;
-		InOut transferType;
-
 		try {
-			id = Integer.parseInt(idStr);
-			date = LocalDate.parse(dateStr);
-			articleId = Integer.parseInt(articleIdStr);
-			quantity = Integer.parseInt(quantityStr);
-			transferType = InOut.valueOf(transferTypeStr);
-		} catch (final Exception e) {
-			return Response.status(Response.Status.BAD_REQUEST).entity("Erreur dans le format des paramètres fournis.")
-					.build();
-		}
-		Stock stock = null;
-		try {
-			stock = DaoFactory.getInstance().getStocksDao().getStockById(id);
+			int id = Integer.parseInt(formParams.getFirst(PARAM_STOCK_ID));
+			LocalDate date = LocalDate.parse(formParams.getFirst(PARAM_STOCK_DATE));
+			int articleId = Integer.parseInt(formParams.getFirst(PARAM_STOCK_ARTICLE_ID));
+			int quantity = Integer.parseInt(formParams.getFirst(PARAM_STOCK_QUANTITY));
+			InOut transferType = InOut.valueOf(formParams.getFirst(PARAM_STOCK_TRANSFER_TYPE));
+			String comment = formParams.getFirst(PARAM_STOCK_COMMENT);
+
+			IStocksDao dao = DaoFactory.getInstance().getStocksDao();
+			Stock stock = dao.getStockById(id);
 			if (stock == null) {
 				return Response.status(Response.Status.NOT_FOUND)
-						.entity("Aucun barème avec l'identifiant".concat(idStr)).build();
+						.entity("Aucun stock avec l'id [" + id + "] n'a été trouvé.").build();
 			}
-		} catch (final DaoException e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
-		try {
+
 			stock.setDate(date);
 			stock.setArticle(DaoFactory.getInstance().getArticlesDao().getArticleById(articleId));
 			stock.setQuantity(quantity);
 			stock.setTransferType(transferType);
 			stock.setComment(comment);
-			DaoFactory.getInstance().getStocksDao().updateStock(stock);
+			dao.updateStock(stock);
 
-			final GenericEntity<Stock> json = new GenericEntity<>(stock) {
-			};
-			return Response.ok().entity(json).build();
-		} catch (final DaoException e) {
+			return Response.ok().entity(new GenericEntity<>(stock) {
+			}).build();
+
+		} catch (NumberFormatException e) {
+			return Response.status(Response.Status.BAD_REQUEST).entity("Erreur dans le format des paramètres fournis.")
+					.build();
+		} catch (DaoException e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}
+	}
+
+	@GET
+	@Path("/all")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getAllStocks() {
+		try {
+			final List<Stock> list = DaoFactory.getInstance().getStocksDao().getAllStocks();
+			return Response.ok().entity(new GenericEntity<>(list) {
+			}).build();
+		} catch (DaoException e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}
+	}
+
+	@GET
+	@Path("/{id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getStockById(@PathParam("id") final int id) {
+		try {
+			Stock stock = DaoFactory.getInstance().getStocksDao().getStockById(id);
+			if (stock == null) {
+				return Response.status(Response.Status.NOT_FOUND)
+						.entity("Aucun stock avec l'id [" + id + "] n'a été trouvé.").build();
+			}
+			return Response.ok().entity(new GenericEntity<>(stock) {
+			}).build();
+		} catch (DaoException e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}
+	}
+
+	@DELETE
+	@Path("/delete/{id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response deleteStock(@PathParam("id") final int id) {
+		try {
+			IStocksDao dao = DaoFactory.getInstance().getStocksDao();
+			Stock stock = dao.getStockById(id);
+			if (stock == null) {
+				return Response.status(Response.Status.NOT_FOUND)
+						.entity("Aucun stock avec l'id [" + id + "] n'a été trouvé.").build();
+			}
+			dao.deleteStock(stock);
+			return Response.ok().entity("Stock supprimé avec succès.").build();
+		} catch (DaoException e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}

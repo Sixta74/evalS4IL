@@ -26,81 +26,32 @@ public class CategoryServices {
 	public static final String PARAM_CAT_NAME = "CategoryName";
 	public static final String PARAM_CAT_DESCRIPTION = "CategoryDescription";
 
+	private boolean isNullOrEmpty(String value) {
+		return value == null || value.trim().isEmpty();
+	}
+
 	@POST
 	@Consumes("application/x-www-form-urlencoded")
 	@Path("/add")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response addCategory(final MultivaluedMap<String, String> formParams) {
-		if (formParams.get(PARAM_CAT_NAME) == null || formParams.get(PARAM_CAT_DESCRIPTION) == null) {
+		if (isNullOrEmpty(formParams.getFirst(PARAM_CAT_NAME))
+				|| isNullOrEmpty(formParams.getFirst(PARAM_CAT_DESCRIPTION))) {
 			return Response.status(Response.Status.BAD_REQUEST)
-					.entity("Un des paramètres obligatoires n'est pas fourni.").build();
+					.entity("Un ou plusieurs paramètres obligatoires sont manquants.").build();
 		}
 
-		final String name = formParams.get(PARAM_CAT_NAME).getFirst();
-		final String description = formParams.get(PARAM_CAT_DESCRIPTION).getFirst();
-
-		if (name.isBlank() || name == null || description.isBlank() || description == null) {
-			return Response.status(Response.Status.BAD_REQUEST)
-					.entity("Un des paramètres obligatoires est vide ou incorrect.").build();
-		}
-
-		Category category = new Category(name, description);
 		try {
+			String name = formParams.getFirst(PARAM_CAT_NAME);
+			String description = formParams.getFirst(PARAM_CAT_DESCRIPTION);
+
+			Category category = new Category(name, description);
 			category = DaoFactory.getInstance().getCategoriesDao().createCategory(category);
-			final GenericEntity<Category> json = new GenericEntity<>(category) {
-			};
-			return Response.ok().entity(json).build();
-		} catch (final DaoException e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
-	}
 
-	@DELETE
-	@Path("/delete/{id}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response deleteCategory(@PathParam("id") final int idCategory) {
-		try {
-			final ICategoriesDao dao = DaoFactory.getInstance().getCategoriesDao();
-			final Category category = dao.getCategoryById(idCategory);
-			if (category == null) {
-				return Response.status(Response.Status.NOT_FOUND)
-						.entity("Aucune catégorie avec l'id [" + idCategory + "] n'a été trouvée.").build();
-			}
-			dao.deleteCategory(category);
-			return Response.ok().entity("Supprimé").build();
-		} catch (final DaoException e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
-	}
+			return Response.status(Response.Status.CREATED).entity(new GenericEntity<>(category) {
+			}).build();
 
-	@GET
-	@Path("/all")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response getAllCategories() {
-		try {
-			final List<Category> ret = DaoFactory.getInstance().getCategoriesDao().getAllCategories();
-			final GenericEntity<List<Category>> json = new GenericEntity<>(ret) {
-			};
-			return Response.ok().entity(json).build();
-		} catch (final Exception e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
-	}
-
-	@GET
-	@Path("/{id}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response getCategoryResponse(@PathParam("id") final int idCategory) {
-		try {
-			Category category = DaoFactory.getInstance().getCategoriesDao().getCategoryById(idCategory);
-			if (category == null) {
-				return Response.status(Response.Status.NOT_FOUND)
-						.entity("Aucune catégorie avec l'id [" + idCategory + "] n'a été trouvée.").build();
-			}
-			final GenericEntity<Category> json = new GenericEntity<>(category) {
-			};
-			return Response.ok().entity(json).build();
-		} catch (final Exception e) {
+		} catch (DaoException e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
@@ -110,44 +61,83 @@ public class CategoryServices {
 	@Path("/update")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response updateCategory(final MultivaluedMap<String, String> formParams) {
-		if (formParams.get(PARAM_CAT_ID) == null || formParams.get(PARAM_CAT_NAME) == null
-				|| formParams.get(PARAM_CAT_DESCRIPTION) == null) {
+		if (isNullOrEmpty(formParams.getFirst(PARAM_CAT_ID)) || isNullOrEmpty(formParams.getFirst(PARAM_CAT_NAME))
+				|| isNullOrEmpty(formParams.getFirst(PARAM_CAT_DESCRIPTION))) {
 			return Response.status(Response.Status.BAD_REQUEST)
-					.entity("Un des paramètres obligatoires n'est pas fourni.").build();
+					.entity("Un ou plusieurs paramètres obligatoires sont manquants.").build();
 		}
 
-		final String idStr = formParams.get(PARAM_CAT_ID).getFirst();
-		final String name = formParams.get(PARAM_CAT_NAME).getFirst();
-		final String description = formParams.get(PARAM_CAT_DESCRIPTION).getFirst();
-
-		int id;
 		try {
-			id = Integer.parseInt(idStr);
-		} catch (final NumberFormatException e) {
-			return Response.status(Response.Status.BAD_REQUEST).entity("L'id fourni n'est pas un nombre entier.")
-					.build();
-		}
+			int id = Integer.parseInt(formParams.getFirst(PARAM_CAT_ID));
+			String name = formParams.getFirst(PARAM_CAT_NAME);
+			String description = formParams.getFirst(PARAM_CAT_DESCRIPTION);
 
-		Category category = null;
-		try {
-			category = DaoFactory.getInstance().getCategoriesDao().getCategoryById(id);
+			ICategoriesDao dao = DaoFactory.getInstance().getCategoriesDao();
+			Category category = dao.getCategoryById(id);
 			if (category == null) {
 				return Response.status(Response.Status.NOT_FOUND)
-						.entity("Aucune catégorie avec l'identifiant " + idStr + " n'a été trouvée.").build();
+						.entity("Aucune catégorie avec l'id [" + id + "] n'a été trouvée.").build();
 			}
-		} catch (final DaoException e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
 
-		try {
 			category.setName(name);
 			category.setDescription(description);
-			DaoFactory.getInstance().getCategoriesDao().updateCategory(category);
+			dao.updateCategory(category);
 
-			final GenericEntity<Category> json = new GenericEntity<>(category) {
-			};
-			return Response.ok().entity(json).build();
-		} catch (final DaoException e) {
+			return Response.ok().entity(new GenericEntity<>(category) {
+			}).build();
+
+		} catch (NumberFormatException e) {
+			return Response.status(Response.Status.BAD_REQUEST).entity("L'id fourni n'est pas un nombre entier.")
+					.build();
+		} catch (DaoException e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}
+	}
+
+	@GET
+	@Path("/all")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getAllCategories() {
+		try {
+			final List<Category> list = DaoFactory.getInstance().getCategoriesDao().getAllCategories();
+			return Response.ok().entity(new GenericEntity<>(list) {
+			}).build();
+		} catch (DaoException e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}
+	}
+
+	@GET
+	@Path("/{id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getCategoryById(@PathParam("id") final int id) {
+		try {
+			Category category = DaoFactory.getInstance().getCategoriesDao().getCategoryById(id);
+			if (category == null) {
+				return Response.status(Response.Status.NOT_FOUND)
+						.entity("Aucune catégorie avec l'id [" + id + "] n'a été trouvée.").build();
+			}
+			return Response.ok().entity(new GenericEntity<>(category) {
+			}).build();
+		} catch (DaoException e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}
+	}
+
+	@DELETE
+	@Path("/delete/{id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response deleteCategory(@PathParam("id") final int id) {
+		try {
+			ICategoriesDao dao = DaoFactory.getInstance().getCategoriesDao();
+			Category category = dao.getCategoryById(id);
+			if (category == null) {
+				return Response.status(Response.Status.NOT_FOUND)
+						.entity("Aucune catégorie avec l'id [" + id + "] n'a été trouvée.").build();
+			}
+			dao.deleteCategory(category);
+			return Response.ok().entity("Catégorie supprimée avec succès.").build();
+		} catch (DaoException e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
