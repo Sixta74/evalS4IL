@@ -1,7 +1,8 @@
 package edu.esiea.inventorymanager.services;
 
 import java.time.LocalDate;
-import java.util.List;
+
+import org.apache.log4j.Logger;
 
 import edu.esiea.inventorymanager.dao.DaoFactory;
 import edu.esiea.inventorymanager.dao.interfaces.IStocksDao;
@@ -13,7 +14,6 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -32,6 +32,8 @@ public class StockServices {
 	public static final String PARAM_STOCK_TRANSFER_TYPE = "StockTransferType";
 	public static final String PARAM_STOCK_COMMENT = "StockComment";
 
+	private static final Logger logger = Logger.getLogger(StockServices.class);
+
 	private boolean isNullOrEmpty(String value) {
 		return value == null || value.trim().isEmpty();
 	}
@@ -46,6 +48,8 @@ public class StockServices {
 				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_QUANTITY))
 				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_TRANSFER_TYPE))
 				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_COMMENT))) {
+
+			logger.warn("Paramètres manquants lors de l'ajout d'un stock.");
 			return Response.status(Response.Status.BAD_REQUEST)
 					.entity("Un ou plusieurs paramètres obligatoires sont manquants.").build();
 		}
@@ -59,79 +63,22 @@ public class StockServices {
 
 			Article article = DaoFactory.getInstance().getArticlesDao().getArticleById(articleId);
 			if (article == null) {
+				logger.warn("Article invalide lors de l'ajout d'un stock.");
 				return Response.status(Response.Status.BAD_REQUEST).entity("Article invalide.").build();
 			}
 
 			Stock stock = new Stock(date, article, quantity, transferType, comment);
 			stock = DaoFactory.getInstance().getStocksDao().createStock(stock);
 
+			logger.info("Stock ajouté avec succès : " + stock.getId());
 			return Response.status(Response.Status.CREATED).entity(new GenericEntity<>(stock) {
 			}).build();
-
 		} catch (NumberFormatException e) {
+			logger.warn("Format invalide pour les paramètres lors de l'ajout d'un stock.");
 			return Response.status(Response.Status.BAD_REQUEST).entity("Erreur dans le format des paramètres fournis.")
 					.build();
 		} catch (DaoException e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
-	}
-
-	@PUT
-	@Consumes("application/x-www-form-urlencoded")
-	@Path("/update")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response updateStock(final MultivaluedMap<String, String> formParams) {
-		if (isNullOrEmpty(formParams.getFirst(PARAM_STOCK_ID)) || isNullOrEmpty(formParams.getFirst(PARAM_STOCK_DATE))
-				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_ARTICLE_ID))
-				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_QUANTITY))
-				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_TRANSFER_TYPE))
-				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_COMMENT))) {
-			return Response.status(Response.Status.BAD_REQUEST)
-					.entity("Un ou plusieurs paramètres obligatoires sont manquants.").build();
-		}
-
-		try {
-			int id = Integer.parseInt(formParams.getFirst(PARAM_STOCK_ID));
-			LocalDate date = LocalDate.parse(formParams.getFirst(PARAM_STOCK_DATE));
-			int articleId = Integer.parseInt(formParams.getFirst(PARAM_STOCK_ARTICLE_ID));
-			int quantity = Integer.parseInt(formParams.getFirst(PARAM_STOCK_QUANTITY));
-			InOut transferType = InOut.valueOf(formParams.getFirst(PARAM_STOCK_TRANSFER_TYPE));
-			String comment = formParams.getFirst(PARAM_STOCK_COMMENT);
-
-			IStocksDao dao = DaoFactory.getInstance().getStocksDao();
-			Stock stock = dao.getStockById(id);
-			if (stock == null) {
-				return Response.status(Response.Status.NOT_FOUND)
-						.entity("Aucun stock avec l'id [" + id + "] n'a été trouvé.").build();
-			}
-
-			stock.setDate(date);
-			stock.setArticle(DaoFactory.getInstance().getArticlesDao().getArticleById(articleId));
-			stock.setQuantity(quantity);
-			stock.setTransferType(transferType);
-			stock.setComment(comment);
-			dao.updateStock(stock);
-
-			return Response.ok().entity(new GenericEntity<>(stock) {
-			}).build();
-
-		} catch (NumberFormatException e) {
-			return Response.status(Response.Status.BAD_REQUEST).entity("Erreur dans le format des paramètres fournis.")
-					.build();
-		} catch (DaoException e) {
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-		}
-	}
-
-	@GET
-	@Path("/all")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response getAllStocks() {
-		try {
-			final List<Stock> list = DaoFactory.getInstance().getStocksDao().getAllStocks();
-			return Response.ok().entity(new GenericEntity<>(list) {
-			}).build();
-		} catch (DaoException e) {
+			logger.error("Erreur interne lors de la création d'un stock : " + e.getMessage());
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
@@ -143,12 +90,15 @@ public class StockServices {
 		try {
 			Stock stock = DaoFactory.getInstance().getStocksDao().getStockById(id);
 			if (stock == null) {
+				logger.warn("Aucun stock trouvé avec l'ID : " + id);
 				return Response.status(Response.Status.NOT_FOUND)
 						.entity("Aucun stock avec l'id [" + id + "] n'a été trouvé.").build();
 			}
+			logger.info("Stock récupéré avec succès : " + stock.getId());
 			return Response.ok().entity(new GenericEntity<>(stock) {
 			}).build();
 		} catch (DaoException e) {
+			logger.error("Erreur interne lors de la récupération d'un stock : " + e.getMessage());
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
@@ -161,12 +111,16 @@ public class StockServices {
 			IStocksDao dao = DaoFactory.getInstance().getStocksDao();
 			Stock stock = dao.getStockById(id);
 			if (stock == null) {
+				logger.warn("Aucun stock trouvé à supprimer avec l'ID : " + id);
 				return Response.status(Response.Status.NOT_FOUND)
 						.entity("Aucun stock avec l'id [" + id + "] n'a été trouvé.").build();
 			}
+
 			dao.deleteStock(stock);
+			logger.info("Stock supprimé avec succès : " + stock.getId());
 			return Response.ok().entity("Stock supprimé avec succès.").build();
 		} catch (DaoException e) {
+			logger.error("Erreur interne lors de la suppression d'un stock : " + e.getMessage());
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}

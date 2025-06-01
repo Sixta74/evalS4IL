@@ -1,16 +1,13 @@
 package edu.esiea.inventorymanager.services;
 
-import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.log4j.Logger;
 
 import edu.esiea.inventorymanager.dao.DaoFactory;
 import edu.esiea.inventorymanager.dao.interfaces.IArticlesDao;
-import edu.esiea.inventorymanager.dao.interfaces.ICategoriesDao;
-import edu.esiea.inventorymanager.dao.interfaces.IStocksDao;
 import edu.esiea.inventorymanager.exception.DaoException;
 import edu.esiea.inventorymanager.model.Article;
-import edu.esiea.inventorymanager.model.Category;
-import edu.esiea.inventorymanager.model.Stock;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -37,6 +34,8 @@ public class ArticleServices {
 	public static final String PARAM_ART_CATEGORY_ID = "CategoryId";
 	public static final String PARAM_ART_STOCK_IDS = "StockIds";
 
+	private static final Logger logger = Logger.getLogger(ArticleServices.class);
+
 	@POST
 	@Path("/add")
 	@Consumes("application/x-www-form-urlencoded")
@@ -47,38 +46,23 @@ public class ArticleServices {
 				|| isNullOrEmpty(formParams.getFirst(PARAM_ART_PICTURE))
 				|| isNullOrEmpty(formParams.getFirst(PARAM_ART_PRICE))
 				|| isNullOrEmpty(formParams.getFirst(PARAM_ART_DESCRIPTION))) {
+
+			logger.warn("Paramètres manquants lors de l'ajout d'un article.");
 			return Response.status(Response.Status.BAD_REQUEST)
 					.entity("Un ou plusieurs paramètres obligatoires sont manquants.").build();
 		}
 
-		String name = formParams.getFirst(PARAM_ART_NAME);
-		String ean13 = formParams.getFirst(PARAM_ART_EAN13);
-		String brand = formParams.getFirst(PARAM_ART_BRAND);
-		String picture = formParams.getFirst(PARAM_ART_PICTURE);
-		float price = Float.parseFloat(formParams.getFirst(PARAM_ART_PRICE));
-		String description = formParams.getFirst(PARAM_ART_DESCRIPTION);
-		String categoryIdStr = formParams.getFirst(PARAM_ART_CATEGORY_ID);
-		Category category = null;
-
-		if (categoryIdStr != null && !categoryIdStr.isBlank()) {
-			int categoryId = Integer.parseInt(categoryIdStr);
-			try {
-				category = DaoFactory.getInstance().getCategoriesDao().getCategoryById(categoryId);
-			} catch (DaoException e) {
-				return Response.status(Response.Status.BAD_REQUEST).entity("Catégorie invalide.").build();
-			}
-		}
-
-		Article article = new Article(name, ean13, brand, picture, price, description);
-		if (category != null) {
-			article.setCategory(category);
-		}
-
 		try {
+			Article article = new Article(formParams.getFirst(PARAM_ART_NAME), formParams.getFirst(PARAM_ART_EAN13),
+					formParams.getFirst(PARAM_ART_BRAND), formParams.getFirst(PARAM_ART_PICTURE),
+					Float.parseFloat(formParams.getFirst(PARAM_ART_PRICE)), formParams.getFirst(PARAM_ART_DESCRIPTION));
+
 			article = DaoFactory.getInstance().getArticlesDao().createArticle(article);
+			logger.info("Article ajouté avec succès : " + article.getName());
 			return Response.status(Response.Status.CREATED).entity(new GenericEntity<>(article) {
 			}).build();
 		} catch (DaoException e) {
+			logger.error("Erreur interne lors de la création d'un article : " + e.getMessage());
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
@@ -94,71 +78,38 @@ public class ArticleServices {
 				|| isNullOrEmpty(formParams.getFirst(PARAM_ART_PICTURE))
 				|| isNullOrEmpty(formParams.getFirst(PARAM_ART_PRICE))
 				|| isNullOrEmpty(formParams.getFirst(PARAM_ART_DESCRIPTION))) {
+
+			logger.warn("Paramètres manquants pour la mise à jour d'un article.");
 			return Response.status(Response.Status.BAD_REQUEST)
 					.entity("Un ou plusieurs paramètres obligatoires sont manquants.").build();
 		}
 
 		try {
 			int id = Integer.parseInt(formParams.getFirst(PARAM_ART_ID));
-			String name = formParams.getFirst(PARAM_ART_NAME);
-			String ean13 = formParams.getFirst(PARAM_ART_EAN13);
-			String brand = formParams.getFirst(PARAM_ART_BRAND);
-			String picture = formParams.getFirst(PARAM_ART_PICTURE);
-			float price = Float.parseFloat(formParams.getFirst(PARAM_ART_PRICE));
-			String description = formParams.getFirst(PARAM_ART_DESCRIPTION);
-
-			ICategoriesDao categoryDao = DaoFactory.getInstance().getCategoriesDao();
-			IStocksDao stocksDao = DaoFactory.getInstance().getStocksDao();
 			IArticlesDao articlesDao = DaoFactory.getInstance().getArticlesDao();
-
 			Article article = articlesDao.getArticleById(id);
 			if (article == null) {
+				logger.warn("Aucun article trouvé pour la mise à jour avec l'ID : " + id);
 				return Response.status(Response.Status.NOT_FOUND)
 						.entity("Aucun article trouvé avec l'identifiant : " + id).build();
 			}
 
-			Category category = null;
-			List<Stock> updatedStocks = null;
-
-			String categoryIdStr = formParams.getFirst(PARAM_ART_CATEGORY_ID);
-			if (categoryIdStr != null && !categoryIdStr.isBlank()) {
-				int categoryId = Integer.parseInt(categoryIdStr);
-				category = categoryDao.getCategoryById(categoryId);
-			}
-
-			if (formParams.get(PARAM_ART_STOCK_IDS) != null) {
-				updatedStocks = new ArrayList<>();
-
-				for (String stockIdStr : formParams.get(PARAM_ART_STOCK_IDS)) {
-					int stockId = Integer.parseInt(stockIdStr);
-					Stock stock = stocksDao.getStockById(stockId);
-					if (stock != null) {
-						updatedStocks.add(stock);
-					}
-				}
-				article.setStock(updatedStocks);
-			}
-
-			article.setName(name);
-			article.setEAN13(ean13);
-			article.setBrand(brand);
-			article.setPicture_URL(picture);
-			article.setPrice(price);
-			article.setDescription(description);
-
-			if (category != null) {
-				article.setCategory(category);
-			}
+			article.setName(formParams.getFirst(PARAM_ART_NAME));
+			article.setEAN13(formParams.getFirst(PARAM_ART_EAN13));
+			article.setBrand(formParams.getFirst(PARAM_ART_BRAND));
+			article.setPicture_URL(formParams.getFirst(PARAM_ART_PICTURE));
+			article.setPrice(Float.parseFloat(formParams.getFirst(PARAM_ART_PRICE)));
+			article.setDescription(formParams.getFirst(PARAM_ART_DESCRIPTION));
 
 			articlesDao.updateArticle(article);
-
-			final GenericEntity<Article> json = new GenericEntity<>(article) {
-			};
-			return Response.ok().entity(json).build();
-
+			logger.info("Article mis à jour avec succès : " + article.getName());
+			return Response.ok().entity(new GenericEntity<>(article) {
+			}).build();
 		} catch (NumberFormatException e) {
+			logger.warn("Format invalide pour ID ou prix lors de la mise à jour.");
 			return Response.status(Response.Status.BAD_REQUEST).entity("ID ou prix invalide.").build();
 		} catch (DaoException e) {
+			logger.error("Erreur interne lors de la mise à jour d'un article : " + e.getMessage());
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
@@ -181,18 +132,18 @@ public class ArticleServices {
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getArticleById(@PathParam("id") final int id) {
-		Article article = null;
 		try {
-			article = DaoFactory.getInstance().getArticlesDao().getArticleById(id);
+			Article article = DaoFactory.getInstance().getArticlesDao().getArticleById(id);
 			if (article == null) {
+				logger.warn("Aucun article trouvé avec l'ID : " + id);
 				return Response.status(Response.Status.NOT_FOUND)
-						.entity("Aucun article avec l'id [".concat(Integer.toString(id)).concat("] n'a été trouvé."))
-						.build();
+						.entity("Aucun article avec l'id [" + id + "] n'a été trouvé.").build();
 			}
-			final GenericEntity<Article> json = new GenericEntity<>(article) {
-			};
-			return Response.ok().entity(json).build();
+			logger.info("Article récupéré : " + article.getName());
+			return Response.ok().entity(new GenericEntity<>(article) {
+			}).build();
 		} catch (DaoException e) {
+			logger.error("Erreur interne lors de la récupération d'un article : " + e.getMessage());
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
@@ -205,12 +156,16 @@ public class ArticleServices {
 			IArticlesDao dao = DaoFactory.getInstance().getArticlesDao();
 			Article article = dao.getArticleById(id);
 			if (article == null) {
+				logger.warn("Aucun article trouvé à supprimer avec l'ID : " + id);
 				return Response.status(Response.Status.NOT_FOUND)
 						.entity("Aucun article trouvé avec l'identifiant : " + id).build();
 			}
+
 			dao.deleteArticle(article);
+			logger.info("Article supprimé avec succès : " + article.getName());
 			return Response.ok().entity("Article supprimé avec succès.").build();
 		} catch (DaoException e) {
+			logger.error("Erreur interne lors de la suppression d'un article : " + e.getMessage());
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
