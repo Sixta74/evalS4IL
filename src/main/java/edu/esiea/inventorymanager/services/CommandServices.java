@@ -10,6 +10,7 @@ import edu.esiea.inventorymanager.dao.DaoFactory;
 import edu.esiea.inventorymanager.dao.interfaces.ICommandsDao;
 import edu.esiea.inventorymanager.exception.DaoException;
 import edu.esiea.inventorymanager.model.Command;
+import edu.esiea.inventorymanager.model.Stock;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -87,21 +88,35 @@ public class CommandServices {
 			Command command = dao.getCommandById(id);
 
 			if (command == null) {
-				logger.warn("Aucune commande trouvée pour la mise à jour avec l'ID : " + id);
+				logger.warn("Aucune commande trouvée avec l'ID : " + id);
 				return Response.status(Response.Status.NOT_FOUND)
 						.entity("Aucune commande avec l'id [" + id + "] n'a été trouvée.").build();
 			}
 
 			command.setDate(date);
 			command.setComment(comment);
-			dao.updateCommand(command);
 
+			if (!isNullOrEmpty(formParams.getFirst("StockIds"))) {
+				String[] stockIds = formParams.getFirst("StockIds").split(",");
+				List<Stock> updatedStocks = new ArrayList<>();
+				for (String stockIdStr : stockIds) {
+					int stockId = Integer.parseInt(stockIdStr);
+					Stock stock = DaoFactory.getInstance().getStocksDao().getStockById(stockId);
+					if (stock != null) {
+						updatedStocks.add(stock);
+					}
+				}
+				command.setStocks(updatedStocks);
+			}
+
+			dao.updateCommand(command);
 			logger.info("Commande mise à jour avec succès : " + command.getId());
+
 			return Response.ok().entity(new GenericEntity<>(command) {
 			}).build();
 		} catch (NumberFormatException e) {
-			logger.warn("Format invalide pour ID lors de la mise à jour.");
-			return Response.status(Response.Status.BAD_REQUEST).entity("L'id fourni n'est pas un nombre entier.")
+			logger.warn("Format invalide pour les paramètres lors de la mise à jour.");
+			return Response.status(Response.Status.BAD_REQUEST).entity("Erreur dans le format des paramètres fournis.")
 					.build();
 		} catch (Exception e) {
 			logger.error("Erreur interne lors de la mise à jour d'une commande : " + e.getMessage());

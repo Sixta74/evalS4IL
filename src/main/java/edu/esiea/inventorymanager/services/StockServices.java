@@ -1,6 +1,7 @@
 package edu.esiea.inventorymanager.services;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -8,6 +9,7 @@ import edu.esiea.inventorymanager.dao.DaoFactory;
 import edu.esiea.inventorymanager.dao.interfaces.IStocksDao;
 import edu.esiea.inventorymanager.exception.DaoException;
 import edu.esiea.inventorymanager.model.Article;
+import edu.esiea.inventorymanager.model.Command;
 import edu.esiea.inventorymanager.model.InOut;
 import edu.esiea.inventorymanager.model.Stock;
 import jakarta.ws.rs.Consumes;
@@ -47,7 +49,8 @@ public class StockServices {
 				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_ARTICLE_ID))
 				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_QUANTITY))
 				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_TRANSFER_TYPE))
-				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_COMMENT))) {
+				|| isNullOrEmpty(formParams.getFirst(PARAM_STOCK_COMMENT))
+				|| isNullOrEmpty(formParams.getFirst("CommandId"))) {
 
 			logger.warn("Paramètres manquants lors de l'ajout d'un stock.");
 			return Response.status(Response.Status.BAD_REQUEST)
@@ -55,6 +58,7 @@ public class StockServices {
 		}
 
 		try {
+			int commandId = Integer.parseInt(formParams.getFirst("CommandId"));
 			LocalDate date = LocalDate.parse(formParams.getFirst(PARAM_STOCK_DATE));
 			int articleId = Integer.parseInt(formParams.getFirst(PARAM_STOCK_ARTICLE_ID));
 			int quantity = Integer.parseInt(formParams.getFirst(PARAM_STOCK_QUANTITY));
@@ -67,10 +71,21 @@ public class StockServices {
 				return Response.status(Response.Status.BAD_REQUEST).entity("Article invalide.").build();
 			}
 
+			Command command = DaoFactory.getInstance().getCommandsDao().getCommandById(commandId);
+			if (command == null) {
+				logger.warn("Commande invalide lors de l'ajout d'un stock.");
+				return Response.status(Response.Status.BAD_REQUEST).entity("Commande invalide.").build();
+			}
+
 			Stock stock = new Stock(date, article, quantity, transferType, comment);
 			stock = DaoFactory.getInstance().getStocksDao().createStock(stock);
 
+			command.getStocks().add(stock);
+			DaoFactory.getInstance().getCommandsDao().updateCommand(command);
+
 			logger.info("Stock ajouté avec succès : " + stock.getId());
+			logger.info("Commande mise à jour avec le stock : " + command.getId());
+
 			return Response.status(Response.Status.CREATED).entity(new GenericEntity<>(stock) {
 			}).build();
 		} catch (NumberFormatException e) {
@@ -99,6 +114,27 @@ public class StockServices {
 			}).build();
 		} catch (DaoException e) {
 			logger.error("Erreur interne lors de la récupération d'un stock : " + e.getMessage());
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}
+	}
+
+	@GET
+	@Path("/all")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getAllStocks() {
+		try {
+			List<Stock> stocks = DaoFactory.getInstance().getStocksDao().getAllStocks();
+
+			if (stocks.isEmpty()) {
+				logger.warn("Aucun stock disponible en base.");
+				return Response.status(Response.Status.NO_CONTENT).entity("Aucun stock trouvé.").build();
+			}
+
+			logger.info("Liste des stocks récupérée avec succès : " + stocks.size() + " éléments.");
+			return Response.ok().entity(new GenericEntity<>(stocks) {
+			}).build();
+		} catch (DaoException e) {
+			logger.error("Erreur interne lors de la récupération des stocks : " + e.getMessage());
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
