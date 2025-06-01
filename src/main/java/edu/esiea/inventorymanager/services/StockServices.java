@@ -139,6 +139,27 @@ public class StockServices {
 		}
 	}
 
+	@GET
+	@Path("/all/{articleId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getStocksByArticle(@PathParam("articleId") final int articleId) {
+		try {
+			List<Stock> stocks = DaoFactory.getInstance().getStocksDao().getStocksByArticleId(articleId);
+
+			if (stocks.isEmpty()) {
+				logger.warn("Aucun stock trouvé pour l'article ID : " + articleId);
+				return Response.status(Response.Status.NO_CONTENT).entity("Aucun stock trouvé.").build();
+			}
+
+			logger.info("Stocks récupérés avec succès : " + stocks.size() + " éléments.");
+			return Response.ok().entity(new GenericEntity<>(stocks) {
+			}).build();
+		} catch (DaoException e) {
+			logger.error("Erreur interne lors de la récupération des stocks : " + e.getMessage());
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}
+	}
+
 	@DELETE
 	@Path("/delete/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
