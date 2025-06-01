@@ -82,7 +82,6 @@ class StockDaoBddTest {
 		assertEquals(PARAM_TRANSFER_TYPE, stock.getTransferType(), "Type de transfert incorrect.");
 		assertEquals(PARAM_COMMENT, stock.getComment(), "Commentaire incorrect.");
 		assertEquals(article.getId(), stock.getArticle().getId(), "L'article du stock ne correspond pas.");
-		assertEquals(command.getId(), stock.getCommand().getId(), "La commande du stock ne correspond pas.");
 	}
 
 	@Test

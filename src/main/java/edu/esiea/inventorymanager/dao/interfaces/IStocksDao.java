@@ -71,4 +71,14 @@ public interface IStocksDao {
 	 * @throws DaoException in case of error.
 	 */
 	void deleteStock(Stock sto) throws DaoException;
+
+	/**
+	 * Returns stored Stocks that are linked to an {@link Command} whose id
+	 * corresponds to the given one.
+	 *
+	 * @param id Id of the {@link Command} associated with the Stock to get.
+	 * @return List of Stocks linked to the given Command.
+	 * @throws DaoException in case of error.
+	 */
+	List<Stock> getStocksByCommandId(int id) throws DaoException;
 }

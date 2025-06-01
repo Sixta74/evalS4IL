@@ -57,7 +57,6 @@ class CategoriesDaoBddTest {
 			e.printStackTrace();
 			fail("Impossible de créer la catégorie");
 		}
-		System.out.println("✅ Catégorie créée avec ID : " + category.getId());
 	}
 
 	@Test

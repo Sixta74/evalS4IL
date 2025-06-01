@@ -6,6 +6,7 @@ import java.util.List;
 import edu.esiea.inventorymanager.dao.DaoFactory;
 import edu.esiea.inventorymanager.dao.interfaces.IStocksDao;
 import edu.esiea.inventorymanager.exception.DaoException;
+import edu.esiea.inventorymanager.model.Article;
 import edu.esiea.inventorymanager.model.InOut;
 import edu.esiea.inventorymanager.model.Stock;
 import jakarta.ws.rs.Consumes;
@@ -56,8 +57,12 @@ public class StockServices {
 			InOut transferType = InOut.valueOf(formParams.getFirst(PARAM_STOCK_TRANSFER_TYPE));
 			String comment = formParams.getFirst(PARAM_STOCK_COMMENT);
 
-			Stock stock = new Stock(date, DaoFactory.getInstance().getArticlesDao().getArticleById(articleId), quantity,
-					transferType, comment);
+			Article article = DaoFactory.getInstance().getArticlesDao().getArticleById(articleId);
+			if (article == null) {
+				return Response.status(Response.Status.BAD_REQUEST).entity("Article invalide.").build();
+			}
+
+			Stock stock = new Stock(date, article, quantity, transferType, comment);
 			stock = DaoFactory.getInstance().getStocksDao().createStock(stock);
 
 			return Response.status(Response.Status.CREATED).entity(new GenericEntity<>(stock) {

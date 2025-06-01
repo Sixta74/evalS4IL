@@ -21,8 +21,7 @@ import javax.persistence.Table;
 @NamedQueries({ @NamedQuery(name = "Stock.findById", query = "SELECT sto FROM Stock sto WHERE sto.id = :id"),
 		@NamedQuery(name = "Stock.findAll", query = "SELECT sto FROM Stock sto"),
 		@NamedQuery(name = "Stock.findByArticleId", query = "SELECT sto FROM Stock sto JOIN sto.article art WHERE art.id = :id"),
-		@NamedQuery(name = "Stock.findAllbyTransferType", query = "SELECT sto FROM Stock sto WHERE sto.transferType = :transferType"),
-		@NamedQuery(name = "Stock.findAllByCommandId", query = "SELECT sto FROM Stock sto JOIN sto.command com WHERE com.id = :id") })
+		@NamedQuery(name = "Stock.findAllbyTransferType", query = "SELECT sto FROM Stock sto WHERE sto.transferType = :transferType") })
 public class Stock {
 	@Id
 	@Column(name = "Id")
@@ -35,11 +34,6 @@ public class Stock {
 	private Article article;
 	@Column(name = "Quantity", nullable = false, length = 30)
 	private int quantity;
-	// Added command type for more convenience in service and queries. This way
-	// findAllByCommandId is a query from Stock class
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "Command", referencedColumnName = "Id")
-	private Command command;
 	@Enumerated(EnumType.STRING)
 	@Column(name = "TransferType", nullable = false, length = 3)
 	private InOut transferType;
@@ -89,14 +83,6 @@ public class Stock {
 
 	public void setQuantity(int quantity) {
 		this.quantity = quantity;
-	}
-
-	public Command getCommand() {
-		return command;
-	}
-
-	public void setCommand(Command command) {
-		this.command = command;
 	}
 
 	public InOut getTransferType() {

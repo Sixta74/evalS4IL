@@ -1,12 +1,14 @@
 package edu.esiea.inventorymanager.services;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import edu.esiea.inventorymanager.dao.DaoFactory;
 import edu.esiea.inventorymanager.dao.interfaces.ICommandsDao;
 import edu.esiea.inventorymanager.exception.DaoException;
 import edu.esiea.inventorymanager.model.Command;
+import edu.esiea.inventorymanager.model.Stock;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -46,12 +48,11 @@ public class CommandServices {
 			LocalDate date = LocalDate.parse(formParams.getFirst(PARAM_COM_DATE));
 			String comment = formParams.getFirst(PARAM_COM_COMMENT);
 
-			Command command = new Command(date, null, comment);
+			Command command = new Command(date, new ArrayList<>(), comment);
 			command = DaoFactory.getInstance().getCommandsDao().createCommand(command);
 
 			return Response.status(Response.Status.CREATED).entity(new GenericEntity<>(command) {
 			}).build();
-
 		} catch (Exception e) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Erreur dans le format des paramètres fournis.")
 					.build();
@@ -62,7 +63,7 @@ public class CommandServices {
 	@Consumes("application/x-www-form-urlencoded")
 	@Path("/update")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response updateCommand(final MultivaluedMap<String, String> formParams) throws DaoException {
+	public Response updateCommand(final MultivaluedMap<String, String> formParams) {
 		if (isNullOrEmpty(formParams.getFirst(PARAM_COM_ID)) || isNullOrEmpty(formParams.getFirst(PARAM_COM_DATE))
 				|| isNullOrEmpty(formParams.getFirst(PARAM_COM_COMMENT))) {
 			return Response.status(Response.Status.BAD_REQUEST)
@@ -83,17 +84,29 @@ public class CommandServices {
 
 			command.setDate(date);
 			command.setComment(comment);
+
+			if (!isNullOrEmpty(formParams.getFirst("StockIds"))) {
+				String[] stockIds = formParams.getFirst("StockIds").split(",");
+				List<Stock> updatedStocks = new ArrayList<>();
+				for (String stockIdStr : stockIds) {
+					int stockId = Integer.parseInt(stockIdStr);
+					Stock stock = DaoFactory.getInstance().getStocksDao().getStockById(stockId);
+					if (stock != null) {
+						updatedStocks.add(stock);
+					}
+				}
+				command.setStocks(updatedStocks);
+			}
+
 			dao.updateCommand(command);
 
 			return Response.ok().entity(new GenericEntity<>(command) {
 			}).build();
-
 		} catch (NumberFormatException e) {
-			return Response.status(Response.Status.BAD_REQUEST).entity("L'id fourni n'est pas un nombre entier.")
-					.build();
-		} catch (Exception e) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Erreur dans le format des paramètres fournis.")
 					.build();
+		} catch (Exception e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}
 	}
 
@@ -120,6 +133,9 @@ public class CommandServices {
 				return Response.status(Response.Status.NOT_FOUND)
 						.entity("Aucune commande avec l'id [" + id + "] n'a été trouvée.").build();
 			}
+			List<Stock> stocks = DaoFactory.getInstance().getStocksDao().getStocksByCommandId(id);
+			command.setStocks(stocks);
+
 			return Response.ok().entity(new GenericEntity<>(command) {
 			}).build();
 		} catch (DaoException e) {

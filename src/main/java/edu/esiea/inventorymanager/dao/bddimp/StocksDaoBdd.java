@@ -53,6 +53,14 @@ public class StocksDaoBdd implements IStocksDao {
 	}
 
 	@Override
+	public List<Stock> getStocksByCommandId(final int id) throws DaoException {
+		final TypedQuery<Stock> query = this.bdd.getEntityManager().createNamedQuery("Stock.findByCommandId",
+				Stock.class);
+		query.setParameter("id", id);
+		return query.getResultList();
+	}
+
+	@Override
 	public List<Stock> getStocksByTransferType(final InOut transferType) throws DaoException {
 		final TypedQuery<Stock> query = this.bdd.getEntityManager().createNamedQuery("Stock.findAllbyTransferType",
 				Stock.class);

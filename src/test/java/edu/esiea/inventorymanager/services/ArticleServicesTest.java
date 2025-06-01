@@ -83,15 +83,10 @@ class ArticleServicesTest extends JerseyTest {
 
 		final Response response = target("/article/add").request().accept(MediaType.APPLICATION_JSON)
 				.post(Entity.form(formulaire));
-		// System.out.println("📢 Contenu brut de la réponse JSON : " +
-		// response.readEntity(String.class));
 		httpStatus = response.getStatus();
 		if (httpStatus == Response.Status.CREATED.getStatusCode()) {
 			try {
 				article = response.readEntity(Article.class);
-				System.out.println(article.getId());
-				System.out.println(article.getEAN13());
-				System.out.println(article.getPrice());
 			} catch (final Exception e) {
 				fail("Impossible de mapper la réponse vers un Article", e);
 			}
@@ -105,7 +100,6 @@ class ArticleServicesTest extends JerseyTest {
 		assertEquals(Response.Status.CREATED.getStatusCode(), httpStatus,
 				"Le status de la réponse devrait être created.");
 		assertNotNull(article, "Echec du mappage réponse article.");
-		System.out.println(article.getId());
 		assertTrue(article.getId() > 0, "L'article créé n'a pas l'id adéquat.");
 		assertEquals(PARAM_NAME_1, article.getName(), "Le nom du premier article n'est pas bon.");
 		assertEquals(PARAM_EAN13_1, article.getEAN13(), "Le code EAN du premier article n'est pas bon.");
